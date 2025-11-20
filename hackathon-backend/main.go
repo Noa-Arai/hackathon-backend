@@ -21,17 +21,18 @@ var db *sql.DB
 func init() {
 	mysqlUser := os.Getenv("MYSQL_USER")
 	mysqlPwd := os.Getenv("MYSQL_PWD")
-	mysqlHost := os.Getenv("MYSQL_HOST")
 	mysqlDatabase := os.Getenv("MYSQL_DATABASE")
+	connectionName := os.Getenv("INSTANCE_CONNECTION_NAME") // ★Cloud SQL の接続名
 
-	if mysqlUser == "" || mysqlPwd == "" || mysqlHost == "" || mysqlDatabase == "" {
+	if mysqlUser == "" || mysqlPwd == "" || connectionName == "" || mysqlDatabase == "" {
 		log.Fatal("fail: environment variable not set")
 	}
 
-	connStr := fmt.Sprintf("%s:%s@%s/%s",
-		mysqlUser, mysqlPwd, mysqlHost, mysqlDatabase)
+	// Cloud SQL の UNIX ソケット接続
+	dsn := fmt.Sprintf("%s:%s@unix(/cloudsql/%s)/%s?parseTime=true",
+		mysqlUser, mysqlPwd, connectionName, mysqlDatabase)
 
-	_db, err := sql.Open("mysql", connStr)
+	_db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("fail: sql.Open, %v\n", err)
 	}
