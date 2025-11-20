@@ -65,8 +65,13 @@ func main() {
 
 	closeDBWithSysCall()
 
-	log.Println("Listening on :8000...")
-	if err := http.ListenAndServe(":8000", nil); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Cloud Run のデフォルト
+	}
+
+	log.Println("Listening on :" + port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
 	}
 }
