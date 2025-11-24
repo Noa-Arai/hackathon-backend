@@ -28,7 +28,6 @@ func init() {
 		log.Fatal("environment variables not set")
 	}
 
-	// Cloud SQL Proxy 経由で接続
 	socketDir := "/cloudsql"
 
 	dsn := fmt.Sprintf("%s:%s@unix(%s/%s)/%s?parseTime=true",
@@ -44,31 +43,21 @@ func init() {
 		log.Fatalf("db.Ping error: %v", err)
 	}
 
-	log.Println("DB connected successfully")
+	log.Println("DB Connected")
 }
 
 func main() {
 	userDAO := dao.NewUserDAO(db)
-
 	registerUsecase := usecase.NewRegisterUserUsecase(userDAO)
-
 	registerController := controller.NewRegisterUserController(registerUsecase)
 
-	http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			registerController.Handle(w, r)
-
-		default:
-			w.WriteHeader(http.StatusBadRequest)
-		}
-	})
+	http.HandleFunc("/user", registerController.Handle)
 
 	closeDBWithSysCall()
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080" // Cloud Run のデフォルト
+		port = "8080"
 	}
 
 	log.Println("Listening on :" + port)
@@ -82,11 +71,8 @@ func closeDBWithSysCall() {
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		s := <-sig
-		log.Printf("received syscall, %v", s)
-		if err := db.Close(); err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("success: db.Close()")
+		log.Printf("received syscall: %v", s)
+		db.Close()
 		os.Exit(0)
 	}()
 }

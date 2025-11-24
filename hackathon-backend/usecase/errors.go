@@ -4,5 +4,5 @@ import "errors"
 
 var (
 	ErrInvalidUser = errors.New("invalid user")
-	ErrInvalidName = errors.New("invalid name")
+	ErrEmailExists = errors.New("email already exists")
 )

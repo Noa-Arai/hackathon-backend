@@ -1,9 +1,7 @@
 package usecase
 
 import (
-	"errors"
 	"hackathon-backend/model"
-
 	"math/rand"
 	"time"
 
@@ -11,55 +9,66 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrEmailAlreadyUsed = errors.New("email already used")
-
-// UserRepository は DAO が実装するインターフェース
-type UserRepository interface {
+// ----------------------------------------------------------
+// Repository interface（DAO が実装するもの）
+// ----------------------------------------------------------
+type RegisterUserRepository interface {
 	Insert(u *model.User) error
 	FindByEmail(email string) (*model.User, error)
 }
 
+// ----------------------------------------------------------
+// Usecase 本体
+// ----------------------------------------------------------
 type RegisterUserUsecase struct {
-	Repo UserRepository
+	Repo RegisterUserRepository
 }
 
-func NewRegisterUserUsecase(repo UserRepository) *RegisterUserUsecase {
+func NewRegisterUserUsecase(repo RegisterUserRepository) *RegisterUserUsecase {
 	return &RegisterUserUsecase{Repo: repo}
 }
 
-// Execute: name, email, password を受け取る本物の /signup 処理
-func (uc *RegisterUserUsecase) Execute(name, email, password string) (*model.User, error) {
+// ----------------------------------------------------------
+// 実行処理（ユーザー登録）
+// ----------------------------------------------------------
+func (uc *RegisterUserUsecase) Execute(name, email, password string) (string, error) {
 
-	// 1. email 重複チェック
+	// email 重複チェック
 	existing, err := uc.Repo.FindByEmail(email)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if existing != nil {
-		return nil, ErrEmailAlreadyUsed
+		return "", ErrEmailExists
 	}
 
-	// 2. password ハッシュ化
+	// パスワードハッシュ化
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// 3. User 構造体を作成
+	// ID 生成
+	entropy := ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
+	id := ulid.MustNew(ulid.Timestamp(time.Now()), entropy).String()
+
+	// モデル生成
 	user := &model.User{
+		ID:           id,
 		Name:         name,
 		Email:        email,
 		PasswordHash: string(hashed),
 	}
 
-	// 4. ULID 生成（今のコードはとても良い）
-	entropy := ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
-	user.ID = ulid.MustNew(ulid.Timestamp(time.Now()), entropy).String()
-
-	// 5. DB 保存
-	if err := uc.Repo.Insert(user); err != nil {
-		return nil, err
+	// バリデーション
+	if !user.Validate() {
+		return "", ErrInvalidUser
 	}
 
-	return user, nil
+	// DB保存
+	if err := uc.Repo.Insert(user); err != nil {
+		return "", err
+	}
+
+	return id, nil
 }
