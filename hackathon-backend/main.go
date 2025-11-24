@@ -51,17 +51,14 @@ func main() {
 	userDAO := dao.NewUserDAO(db)
 
 	registerUsecase := usecase.NewRegisterUserUsecase(userDAO)
-	searchUsecase := usecase.NewSearchUserUsecase(userDAO)
 
 	registerController := controller.NewRegisterUserController(registerUsecase)
-	searchController := controller.NewSearchUserController(searchUsecase)
 
 	http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			registerController.Handle(w, r)
-		case http.MethodGet:
-			searchController.Handle(w, r)
+
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 		}
