@@ -51,7 +51,11 @@ func main() {
 	registerUsecase := usecase.NewRegisterUserUsecase(userDAO)
 	registerController := controller.NewRegisterUserController(registerUsecase)
 
+	loginUsecase := usecase.NewLoginUserUsecase(userDAO, os.Getenv("JWT_SECRET"))
+	loginController := controller.NewLoginUserController(loginUsecase)
+
 	http.HandleFunc("/user", registerController.Handle)
+	http.HandleFunc("/login", loginController.Handle)
 
 	closeDBWithSysCall()
 
