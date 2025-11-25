@@ -19,6 +19,9 @@ import (
 
 var db *sql.DB
 
+// ============================
+// DB 初期化
+// ============================
 func init() {
 	mysqlUser := os.Getenv("MYSQL_USER")
 	mysqlPwd := os.Getenv("MYSQL_PWD")
@@ -48,26 +51,55 @@ func init() {
 }
 
 func main() {
+
+	// ====================================
+	// User 関連
+	// ====================================
 	userDAO := dao.NewUserDAO(db)
+
 	registerUsecase := usecase.NewRegisterUserUsecase(userDAO)
 	registerController := controller.NewRegisterUserController(registerUsecase)
 
 	loginUsecase := usecase.NewLoginUserUsecase(userDAO, os.Getenv("JWT_SECRET"))
 	loginController := controller.NewLoginUserController(loginUsecase)
 
+	// ====================================
+	// Item 関連
+	// ====================================
 	itemDAO := dao.NewItemDAO(db)
+
+	// POST /items（商品登録）
 	registerItemUsecase := usecase.NewRegisterItemUsecase(itemDAO)
 	registerItemController := controller.NewRegisterItemController(registerItemUsecase)
 
-	http.Handle("/items", middleware.AuthMiddleware(
-		http.HandlerFunc(registerItemController.Handle),
-	))
+	// GET /items/list（商品一覧）
+	getItemsUsecase := usecase.NewGetItemsUsecase(itemDAO)
+	getItemsController := controller.NewGetItemsController(getItemsUsecase)
 
+	// ====================================
+	// ルーティング
+	// ====================================
+
+	// 認証が必要な商品登録
+	http.Handle("/items",
+		middleware.AuthMiddleware(
+			http.HandlerFunc(registerItemController.Handle),
+		),
+	)
+
+	// 商品一覧 (認証不要)
+	http.HandleFunc("/items/list", getItemsController.Handle)
+
+	// ユーザー登録
 	http.HandleFunc("/user", registerController.Handle)
+
+	// ログイン（JWT 発行）
 	http.HandleFunc("/login", loginController.Handle)
 
+	// 終了時に DB を閉じる
 	closeDBWithSysCall()
 
+	// Cloud Run の PORT 対応
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -79,6 +111,9 @@ func main() {
 	}
 }
 
+// ============================
+// Graceful Shutdown
+// ============================
 func closeDBWithSysCall() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)

@@ -1,6 +1,10 @@
 package usecase
 
-import "hackathon-backend/model"
+import (
+	"strconv"
+
+	"hackathon-backend/model"
+)
 
 type RegisterItemRepository interface {
 	Insert(item *model.Item) error
@@ -15,12 +19,20 @@ func NewRegisterItemUsecase(r RegisterItemRepository) *RegisterItemUsecase {
 }
 
 func (uc *RegisterItemUsecase) Execute(userID string, title, desc string, price int, img string) error {
+
+	// userID(string) → int64 に変換
+	uid, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		return err
+	}
+
 	item := &model.Item{
-		UserID:      userID,
+		UserID:      uid,
 		Title:       title,
 		Description: desc,
 		Price:       price,
 		ImageURL:    img,
 	}
+
 	return uc.Repo.Insert(item)
 }
