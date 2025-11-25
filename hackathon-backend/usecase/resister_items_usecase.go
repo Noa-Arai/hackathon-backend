@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"strconv"
-
 	"hackathon-backend/model"
 )
 
@@ -20,13 +18,8 @@ func NewRegisterItemUsecase(r RegisterItemRepository) *RegisterItemUsecase {
 
 func (uc *RegisterItemUsecase) Execute(userID string, title, desc string, price int, img string) error {
 
-	uid, err := strconv.ParseInt(userID, 10, 64)
-	if err != nil {
-		return err
-	}
-
 	item := &model.Item{
-		UserID:      uid,
+		UserID:      userID, // ← ULID をそのまま保存
 		Title:       title,
 		Description: desc,
 		Price:       price,
