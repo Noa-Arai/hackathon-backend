@@ -67,6 +67,11 @@ func main() {
 	getItemsUsecase := usecase.NewGetItemsUsecase(itemDAO)
 	getItemsController := controller.NewGetItemsController(getItemsUsecase)
 
+	// --- Purchase: Insert ---
+	purchaseDAO := dao.NewPurchaseDAO(db)
+	purchaseUsecase := usecase.NewPurchaseUsecase(purchaseDAO)
+	purchaseController := controller.NewPurchaseController(purchaseUsecase)
+
 	// --------- Routing -----------
 
 	// Item 登録（POSTのみ Auth required）
@@ -88,6 +93,17 @@ func main() {
 
 	// ログイン
 	http.HandleFunc("/login", loginController.Handle)
+
+	// --- Purchase API（POST） Auth 必須 ---
+	http.Handle("/purchase", middleware.AuthMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				purchaseController.Handle(w, r)
+				return
+			}
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}),
+	))
 
 	// Graceful shutdown
 	closeDBWithSysCall()
