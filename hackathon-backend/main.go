@@ -19,9 +19,6 @@ import (
 
 var db *sql.DB
 
-// ============================
-// DB 初期化
-// ============================
 func init() {
 	mysqlUser := os.Getenv("MYSQL_USER")
 	mysqlPwd := os.Getenv("MYSQL_PWD")
@@ -52,54 +49,50 @@ func init() {
 
 func main() {
 
-	// ====================================
-	// User 関連
-	// ====================================
+	// --- User: Register ---
 	userDAO := dao.NewUserDAO(db)
+	registerUserUsecase := usecase.NewRegisterUserUsecase(userDAO)
+	registerUserController := controller.NewRegisterUserController(registerUserUsecase)
 
-	registerUsecase := usecase.NewRegisterUserUsecase(userDAO)
-	registerController := controller.NewRegisterUserController(registerUsecase)
-
+	// --- User: Login ---
 	loginUsecase := usecase.NewLoginUserUsecase(userDAO, os.Getenv("JWT_SECRET"))
 	loginController := controller.NewLoginUserController(loginUsecase)
 
-	// ====================================
-	// Item 関連
-	// ====================================
+	// --- Items: Register ---
 	itemDAO := dao.NewItemDAO(db)
-
-	// POST /items（商品登録）
 	registerItemUsecase := usecase.NewRegisterItemUsecase(itemDAO)
 	registerItemController := controller.NewRegisterItemController(registerItemUsecase)
 
-	// GET /items/list（商品一覧）
+	// --- Items: Get ---
 	getItemsUsecase := usecase.NewGetItemsUsecase(itemDAO)
 	getItemsController := controller.NewGetItemsController(getItemsUsecase)
 
-	// ====================================
-	// ルーティング
-	// ====================================
+	// --------- Routing -----------
 
-	// 認証が必要な商品登録
-	http.Handle("/items",
-		middleware.AuthMiddleware(
-			http.HandlerFunc(registerItemController.Handle),
-		),
-	)
+	// Item 登録（POSTのみ Auth required）
+	http.Handle("/items", middleware.AuthMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				registerItemController.Handle(w, r)
+				return
+			}
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}),
+	))
 
-	// 商品一覧 (認証不要)
+	// Item 一覧（GET）
 	http.HandleFunc("/items/list", getItemsController.Handle)
 
 	// ユーザー登録
-	http.HandleFunc("/user", registerController.Handle)
+	http.HandleFunc("/user", registerUserController.Handle)
 
-	// ログイン（JWT 発行）
+	// ログイン
 	http.HandleFunc("/login", loginController.Handle)
 
-	// 終了時に DB を閉じる
+	// Graceful shutdown
 	closeDBWithSysCall()
 
-	// Cloud Run の PORT 対応
+	// start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -111,9 +104,6 @@ func main() {
 	}
 }
 
-// ============================
-// Graceful Shutdown
-// ============================
 func closeDBWithSysCall() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
