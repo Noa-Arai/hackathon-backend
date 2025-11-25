@@ -11,6 +11,7 @@ import (
 
 	"hackathon-backend/controller"
 	"hackathon-backend/dao"
+	"hackathon-backend/middleware"
 	"hackathon-backend/usecase"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -53,6 +54,14 @@ func main() {
 
 	loginUsecase := usecase.NewLoginUserUsecase(userDAO, os.Getenv("JWT_SECRET"))
 	loginController := controller.NewLoginUserController(loginUsecase)
+
+	itemDAO := dao.NewItemDAO(db)
+	registerItemUsecase := usecase.NewRegisterItemUsecase(itemDAO)
+	registerItemController := controller.NewRegisterItemController(registerItemUsecase)
+
+	http.Handle("/items", middleware.AuthMiddleware(
+		http.HandlerFunc(registerItemController.Handle),
+	))
 
 	http.HandleFunc("/user", registerController.Handle)
 	http.HandleFunc("/login", loginController.Handle)
