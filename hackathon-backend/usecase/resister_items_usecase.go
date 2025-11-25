@@ -20,7 +20,6 @@ func NewRegisterItemUsecase(r RegisterItemRepository) *RegisterItemUsecase {
 
 func (uc *RegisterItemUsecase) Execute(userID string, title, desc string, price int, img string) error {
 
-	// userID(string) → int64 に変換
 	uid, err := strconv.ParseInt(userID, 10, 64)
 	if err != nil {
 		return err

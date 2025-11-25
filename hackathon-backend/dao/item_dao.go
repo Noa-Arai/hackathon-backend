@@ -3,6 +3,7 @@ package dao
 import (
 	"database/sql"
 	"hackathon-backend/model"
+	"log"
 )
 
 type ItemRepository interface {
@@ -22,6 +23,11 @@ func (d *ItemDAO) Insert(item *model.Item) error {
 		"INSERT INTO items (user_id, title, description, price, image_url) VALUES (?, ?, ?, ?, ?)",
 		item.UserID, item.Title, item.Description, item.Price, item.ImageURL,
 	)
+
+	if err != nil {
+		log.Printf("INSERT ERROR: %v", err) // ★これを追加
+	}
+
 	return err
 }
 
