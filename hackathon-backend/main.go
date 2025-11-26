@@ -104,6 +104,24 @@ func main() {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}),
 	))
+	// --- Messages (DM) ---
+	messageDAO := dao.NewMessageDAO(db)
+	messageUsecase := usecase.NewMessageUsecase(messageDAO)
+	messageController := controller.NewMessageController(messageUsecase)
+
+	// POST /messages（認証必須）
+	http.Handle("/messages", middleware.AuthMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				messageController.Send(w, r)
+				return
+			}
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}),
+	))
+
+	// GET /messages?item_id=xx（認証不要）
+	http.HandleFunc("/messages/list", messageController.List)
 
 	// Graceful shutdown
 	closeDBWithSysCall()
