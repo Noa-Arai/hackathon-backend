@@ -104,6 +104,7 @@ func main() {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}),
 	))
+
 	// --- Messages (DM) ---
 	messageDAO := dao.NewMessageDAO(db)
 	messageUsecase := usecase.NewMessageUsecase(messageDAO)
@@ -120,10 +121,17 @@ func main() {
 		}),
 	))
 
-	// GET /messages?item_id=xx（認証不要）
+	// GET /messages/list?item_id=xx（認証不要）
 	http.HandleFunc("/messages/list", messageController.List)
 
-	// Graceful shutdown
+	// --- Gemini AI ---
+	aiUsecase := usecase.NewAIUsecase()
+	aiController := controller.NewAIController(aiUsecase)
+
+	http.HandleFunc("/ai/describe", aiController.Describe)
+	http.HandleFunc("/ai/ask", aiController.Ask)
+
+	// Graceful shutdown をここに！
 	closeDBWithSysCall()
 
 	// start server
