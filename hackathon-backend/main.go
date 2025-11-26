@@ -49,33 +49,50 @@ func init() {
 
 func main() {
 
-	// --- User: Register ---
+	// ======== mux + CORS Wrapping ========
+	mux := http.NewServeMux()
+	handler := middleware.CORS(mux)
+
+	// ======== Usecases & Controllers ========
+
+	// User
 	userDAO := dao.NewUserDAO(db)
 	registerUserUsecase := usecase.NewRegisterUserUsecase(userDAO)
 	registerUserController := controller.NewRegisterUserController(registerUserUsecase)
 
-	// --- User: Login ---
 	loginUsecase := usecase.NewLoginUserUsecase(userDAO, os.Getenv("JWT_SECRET"))
 	loginController := controller.NewLoginUserController(loginUsecase)
 
-	// --- Items: Register ---
+	// Items
 	itemDAO := dao.NewItemDAO(db)
 	registerItemUsecase := usecase.NewRegisterItemUsecase(itemDAO)
 	registerItemController := controller.NewRegisterItemController(registerItemUsecase)
 
-	// --- Items: Get ---
 	getItemsUsecase := usecase.NewGetItemsUsecase(itemDAO)
 	getItemsController := controller.NewGetItemsController(getItemsUsecase)
 
-	// --- Purchase: Insert ---
+	// Purchase
 	purchaseDAO := dao.NewPurchaseDAO(db)
 	purchaseUsecase := usecase.NewPurchaseUsecase(purchaseDAO)
 	purchaseController := controller.NewPurchaseController(purchaseUsecase)
 
-	// --------- Routing -----------
+	// Messages
+	messageDAO := dao.NewMessageDAO(db)
+	messageUsecase := usecase.NewMessageUsecase(messageDAO)
+	messageController := controller.NewMessageController(messageUsecase)
 
-	// Item 登録（POSTのみ Auth required）
-	http.Handle("/items", middleware.AuthMiddleware(
+	// AI (Gemini)
+	aiUsecase := usecase.NewAIUsecase()
+	aiController := controller.NewAIController(aiUsecase)
+
+	// ======== Routing (全部 mux.Handle に変更) ========
+
+	// User register & login
+	mux.HandleFunc("/user", registerUserController.Handle)
+	mux.HandleFunc("/login", loginController.Handle)
+
+	// Items
+	mux.Handle("/items", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
 				registerItemController.Handle(w, r)
@@ -85,17 +102,10 @@ func main() {
 		}),
 	))
 
-	// Item 一覧（GET）
-	http.HandleFunc("/items/list", getItemsController.Handle)
+	mux.HandleFunc("/items/list", getItemsController.Handle)
 
-	// ユーザー登録
-	http.HandleFunc("/user", registerUserController.Handle)
-
-	// ログイン
-	http.HandleFunc("/login", loginController.Handle)
-
-	// --- Purchase API（POST） Auth 必須 ---
-	http.Handle("/purchase", middleware.AuthMiddleware(
+	// Purchase
+	mux.Handle("/purchase", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
 				purchaseController.Handle(w, r)
@@ -105,13 +115,8 @@ func main() {
 		}),
 	))
 
-	// --- Messages (DM) ---
-	messageDAO := dao.NewMessageDAO(db)
-	messageUsecase := usecase.NewMessageUsecase(messageDAO)
-	messageController := controller.NewMessageController(messageUsecase)
-
-	// POST /messages（認証必須）
-	http.Handle("/messages", middleware.AuthMiddleware(
+	// Messages
+	mux.Handle("/messages", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
 				messageController.Send(w, r)
@@ -121,27 +126,23 @@ func main() {
 		}),
 	))
 
-	// GET /messages/list?item_id=xx（認証不要）
-	http.HandleFunc("/messages/list", messageController.List)
+	mux.HandleFunc("/messages/list", messageController.List)
 
-	// --- Gemini AI ---
-	aiUsecase := usecase.NewAIUsecase()
-	aiController := controller.NewAIController(aiUsecase)
+	// AI
+	mux.HandleFunc("/ai/describe", aiController.Describe)
+	mux.HandleFunc("/ai/ask", aiController.Ask)
 
-	http.HandleFunc("/ai/describe", aiController.Describe)
-	http.HandleFunc("/ai/ask", aiController.Ask)
-
-	// Graceful shutdown をここに！
+	// ========== Graceful shutdown ==========
 	closeDBWithSysCall()
 
-	// start server
+	// ========== Start server ==========
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
 	log.Println("Listening on :" + port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, handler); err != nil {
 		log.Fatal(err)
 	}
 }
