@@ -49,7 +49,7 @@ func init() {
 
 func main() {
 
-	// ======== mux + CORS Wrapping ========
+	// ======== mux + CORS ========
 	mux := http.NewServeMux()
 	handler := middleware.CORS(mux)
 
@@ -65,15 +65,17 @@ func main() {
 
 	// Items
 	itemDAO := dao.NewItemDAO(db)
+
 	registerItemUsecase := usecase.NewRegisterItemUsecase(itemDAO)
 	registerItemController := controller.NewRegisterItemController(registerItemUsecase)
 
 	getItemsUsecase := usecase.NewGetItemsUsecase(itemDAO)
-	getItemsController := controller.NewGetItemsController(getItemsUsecase)
-
-	// ★ 画像API用
 	getItemImageUsecase := usecase.NewGetItemImageUsecase(itemDAO)
-	getItemImageController := controller.NewGetItemImageController(getItemImageUsecase)
+
+	getItemsController := controller.NewGetItemsController(
+		getItemsUsecase,
+		getItemImageUsecase,
+	)
 
 	// Purchase
 	purchaseDAO := dao.NewPurchaseDAO(db)
@@ -85,11 +87,11 @@ func main() {
 	messageUsecase := usecase.NewMessageUsecase(messageDAO)
 	messageController := controller.NewMessageController(messageUsecase)
 
-	// AI (Gemini)
+	// AI
 	aiUsecase := usecase.NewAIUsecase()
 	aiController := controller.NewAIController(aiUsecase)
 
-	// ======== Routing (全部 mux.Handle に変更) ========
+	// ======== Routing ========
 
 	// User register & login
 	mux.HandleFunc("/user", registerUserController.Handle)
@@ -109,8 +111,10 @@ func main() {
 	// 商品一覧（GET）
 	mux.HandleFunc("/items/list", getItemsController.Handle)
 
-	// ★ 画像取得 API（GET）
-	mux.HandleFunc("/items/image", getItemImageController.Handle)
+	// ★ 画像取得API（3枚）
+	mux.HandleFunc("/items/image1", getItemsController.HandleImage(1))
+	mux.HandleFunc("/items/image2", getItemsController.HandleImage(2))
+	mux.HandleFunc("/items/image3", getItemsController.HandleImage(3))
 
 	// Purchase
 	mux.Handle("/purchase", middleware.AuthMiddleware(
@@ -133,17 +137,16 @@ func main() {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}),
 	))
-
 	mux.HandleFunc("/messages/list", messageController.List)
 
 	// AI
 	mux.HandleFunc("/ai/describe", aiController.Describe)
 	mux.HandleFunc("/ai/ask", aiController.Ask)
 
-	// ========== Graceful shutdown ==========
+	// graceful shutdown
 	closeDBWithSysCall()
 
-	// ========== Start server ==========
+	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

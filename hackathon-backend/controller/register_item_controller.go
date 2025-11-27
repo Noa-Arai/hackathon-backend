@@ -4,6 +4,7 @@ import (
 	"hackathon-backend/middleware"
 	"hackathon-backend/usecase"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 )
@@ -16,39 +17,61 @@ func NewRegisterItemController(u *usecase.RegisterItemUsecase) *RegisterItemCont
 	return &RegisterItemController{Usecase: u}
 }
 
+func readFile(f multipart.File) []byte {
+	if f == nil {
+		return nil
+	}
+	b, _ := io.ReadAll(f)
+	return b
+}
+
 func (c *RegisterItemController) Handle(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(middleware.UserIDKey).(string)
 
-	if err := r.ParseMultipartForm(20 << 20); err != nil {
+	if err := r.ParseMultipartForm(30 << 20); err != nil {
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
 
 	title := r.FormValue("title")
 	description := r.FormValue("description")
-	priceStr := r.FormValue("price")
-	price, _ := strconv.Atoi(priceStr)
+	price, _ := strconv.Atoi(r.FormValue("price"))
 
-	file, header, err := r.FormFile("file")
+	// --- 画像3つ取得 ---
+	file1, header1, _ := r.FormFile("file1")
+	file2, header2, _ := r.FormFile("file2")
+	file3, header3, _ := r.FormFile("file3")
 
-	var img []byte
-	var imgType string
+	img1 := readFile(file1)
+	img2 := readFile(file2)
+	img3 := readFile(file3)
 
-	if err == nil {
-		defer file.Close()
-		img, _ = io.ReadAll(file)
-		imgType = header.Header.Get("Content-Type")
+	t1 := ""
+	t2 := ""
+	t3 := ""
+
+	if header1 != nil {
+		t1 = header1.Header.Get("Content-Type")
+	}
+	if header2 != nil {
+		t2 = header2.Header.Get("Content-Type")
+	}
+	if header3 != nil {
+		t3 = header3.Header.Get("Content-Type")
 	}
 
-	if err := c.Usecase.Execute(
+	err := c.Usecase.Execute(
 		userID,
 		title,
 		description,
 		price,
-		img,
-		imgType,
-	); err != nil {
+		img1, t1,
+		img2, t2,
+		img3, t3,
+	)
+
+	if err != nil {
 		http.Error(w, "Insert failed", http.StatusInternalServerError)
 		return
 	}

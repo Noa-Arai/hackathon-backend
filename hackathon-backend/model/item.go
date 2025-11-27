@@ -9,9 +9,18 @@ type Item struct {
 	Description string `json:"description"`
 	Price       int    `json:"price"`
 
-	// ★ 追加（BLOB保存用）
-	ImageData []byte `json:"-"`          // フロントに直接返さない
-	ImageType string `json:"image_type"` // "image/png" など
+	// --- 保存用（BLOB） ---
+	Image1Data []byte `json:"-"`
+	Image1Type string `json:"-"`
+	Image2Data []byte `json:"-"`
+	Image2Type string `json:"-"`
+	Image3Data []byte `json:"-"`
+	Image3Type string `json:"-"`
+
+	// --- フロント用URL ---
+	Image1URL string `json:"image1_url"`
+	Image2URL string `json:"image2_url"`
+	Image3URL string `json:"image3_url"`
 
 	CreatedAt time.Time `json:"created_at"`
 }
