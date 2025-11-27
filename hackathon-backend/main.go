@@ -71,6 +71,10 @@ func main() {
 	getItemsUsecase := usecase.NewGetItemsUsecase(itemDAO)
 	getItemsController := controller.NewGetItemsController(getItemsUsecase)
 
+	// ★ 画像API用
+	getItemImageUsecase := usecase.NewGetItemImageUsecase(itemDAO)
+	getItemImageController := controller.NewGetItemImageController(getItemImageUsecase)
+
 	// Purchase
 	purchaseDAO := dao.NewPurchaseDAO(db)
 	purchaseUsecase := usecase.NewPurchaseUsecase(purchaseDAO)
@@ -91,7 +95,7 @@ func main() {
 	mux.HandleFunc("/user", registerUserController.Handle)
 	mux.HandleFunc("/login", loginController.Handle)
 
-	// Items
+	// 商品登録（POST）
 	mux.Handle("/items", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
@@ -102,7 +106,11 @@ func main() {
 		}),
 	))
 
+	// 商品一覧（GET）
 	mux.HandleFunc("/items/list", getItemsController.Handle)
+
+	// ★ 画像取得 API（GET）
+	mux.HandleFunc("/items/image", getItemImageController.Handle)
 
 	// Purchase
 	mux.Handle("/purchase", middleware.AuthMiddleware(

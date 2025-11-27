@@ -1,8 +1,6 @@
 package usecase
 
-import (
-	"hackathon-backend/model"
-)
+import "hackathon-backend/model"
 
 type RegisterItemRepository interface {
 	Insert(item *model.Item) error
@@ -16,14 +14,22 @@ func NewRegisterItemUsecase(r RegisterItemRepository) *RegisterItemUsecase {
 	return &RegisterItemUsecase{Repo: r}
 }
 
-func (uc *RegisterItemUsecase) Execute(userID string, title, desc string, price int, img string) error {
+func (uc *RegisterItemUsecase) Execute(
+	userID string,
+	title string,
+	desc string,
+	price int,
+	imageData []byte,
+	imageType string,
+) error {
 
 	item := &model.Item{
-		UserID:      userID, // ← ULID をそのまま保存
+		UserID:      userID,
 		Title:       title,
 		Description: desc,
 		Price:       price,
-		ImageURL:    img,
+		ImageData:   imageData,
+		ImageType:   imageType,
 	}
 
 	return uc.Repo.Insert(item)
