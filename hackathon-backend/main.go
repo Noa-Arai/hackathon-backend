@@ -53,51 +53,83 @@ func main() {
 	mux := http.NewServeMux()
 	handler := middleware.CORS(mux)
 
-	// ======== Usecases & Controllers ========
+	// ======== DAO ========
+	userDAO := dao.NewUserDAO(db)
+	itemDAO := dao.NewItemDAO(db)
+	messageDAO := dao.NewMessageDAO(db)
+	purchaseDAO := dao.NewPurchaseDAO(db)
+
+	// ======== USECASE ========
 
 	// User
-	userDAO := dao.NewUserDAO(db)
 	registerUserUsecase := usecase.NewRegisterUserUsecase(userDAO)
-	registerUserController := controller.NewRegisterUserController(registerUserUsecase)
-
 	loginUsecase := usecase.NewLoginUserUsecase(userDAO, os.Getenv("JWT_SECRET"))
-	loginController := controller.NewLoginUserController(loginUsecase)
+
+	// Profile
+	getMyProfileUsecase := usecase.NewGetMyProfileUsecase(userDAO)
+	updateProfileUsecase := usecase.NewUpdateProfileUsecase(userDAO)
+	updateAvatarUsecase := usecase.NewUpdateAvatarUsecase(userDAO)
 
 	// Items
-	itemDAO := dao.NewItemDAO(db)
-
 	registerItemUsecase := usecase.NewRegisterItemUsecase(itemDAO)
-	registerItemController := controller.NewRegisterItemController(registerItemUsecase)
-
 	getItemsUsecase := usecase.NewGetItemsUsecase(itemDAO)
 	getItemImageUsecase := usecase.NewGetItemImageUsecase(itemDAO)
 
-	getItemsController := controller.NewGetItemsController(
-		getItemsUsecase,
-		getItemImageUsecase,
-	)
+	// Messages
+	messageUsecase := usecase.NewMessageUsecase(messageDAO)
 
 	// Purchase
-	purchaseDAO := dao.NewPurchaseDAO(db)
 	purchaseUsecase := usecase.NewPurchaseUsecase(purchaseDAO)
-	purchaseController := controller.NewPurchaseController(purchaseUsecase)
-
-	// Messages
-	messageDAO := dao.NewMessageDAO(db)
-	messageUsecase := usecase.NewMessageUsecase(messageDAO)
-	messageController := controller.NewMessageController(messageUsecase)
 
 	// AI
 	aiUsecase := usecase.NewAIUsecase()
+
+	// ======== CONTROLLER ========
+
+	// Auth
+	registerUserController := controller.NewRegisterUserController(registerUserUsecase)
+	loginController := controller.NewLoginUserController(loginUsecase)
+
+	// Profile
+	getMyProfileController := controller.NewGetMyProfileController(getMyProfileUsecase)
+	updateProfileController := controller.NewUpdateProfileController(updateProfileUsecase)
+	updateAvatarController := controller.NewUpdateAvatarController(updateAvatarUsecase)
+	getAvatarController := controller.NewGetAvatarController(userDAO)
+
+	// Items
+	registerItemController := controller.NewRegisterItemController(registerItemUsecase)
+	getItemsController := controller.NewGetItemsController(getItemsUsecase, getItemImageUsecase)
+
+	// Messages
+	messageController := controller.NewMessageController(messageUsecase)
+
+	// Purchase
+	purchaseController := controller.NewPurchaseController(purchaseUsecase)
+
+	// AI
 	aiController := controller.NewAIController(aiUsecase)
 
-	// ======== Routing ========
+	// ======== ROUTING ========
 
-	// User register & login
+	// ---------------- USER ----------------
 	mux.HandleFunc("/user", registerUserController.Handle)
 	mux.HandleFunc("/login", loginController.Handle)
 
-	// 商品登録（POST）
+	// ---------------- PROFILE (要JWT) ----------------
+	mux.Handle("/users/me", middleware.AuthMiddleware(
+		http.HandlerFunc(getMyProfileController.Handle),
+	))
+	mux.Handle("/users/me/update", middleware.AuthMiddleware(
+		http.HandlerFunc(updateProfileController.Handle),
+	))
+	mux.Handle("/users/me/avatar", middleware.AuthMiddleware(
+		http.HandlerFunc(updateAvatarController.Handle),
+	))
+
+	// public avatar fetch
+	mux.HandleFunc("/users/avatar", getAvatarController.Handle)
+
+	// ---------------- ITEMS ----------------
 	mux.Handle("/items", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
@@ -108,15 +140,27 @@ func main() {
 		}),
 	))
 
-	// 商品一覧（GET）
 	mux.HandleFunc("/items/list", getItemsController.Handle)
-
-	// ★ 画像取得API（3枚）
 	mux.HandleFunc("/items/image1", getItemsController.HandleImage(1))
 	mux.HandleFunc("/items/image2", getItemsController.HandleImage(2))
 	mux.HandleFunc("/items/image3", getItemsController.HandleImage(3))
 
-	// Purchase
+	// ---------------- MESSAGES ----------------
+	mux.Handle("/messages", middleware.AuthMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				messageController.Send(w, r)
+				return
+			}
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}),
+	))
+
+	mux.Handle("/messages/list", middleware.AuthMiddleware(
+		http.HandlerFunc(messageController.List),
+	))
+
+	// ---------------- PURCHASE ----------------
 	mux.Handle("/purchase", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
@@ -127,19 +171,7 @@ func main() {
 		}),
 	))
 
-	// Messages
-	mux.Handle("/messages", middleware.AuthMiddleware(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost {
-				messageController.Send(w, r)
-				return
-			}
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}),
-	))
-	mux.HandleFunc("/messages/list", messageController.List)
-
-	// AI
+	// ---------------- AI ----------------
 	mux.HandleFunc("/ai/describe", aiController.Describe)
 	mux.HandleFunc("/ai/ask", aiController.Ask)
 

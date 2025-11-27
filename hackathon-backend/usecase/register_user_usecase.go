@@ -9,17 +9,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ----------------------------------------------------------
-// Repository interface（DAO が実装するもの）
-// ----------------------------------------------------------
+// Repository interface
 type RegisterUserRepository interface {
 	Insert(u *model.User) error
 	FindByEmail(email string) (*model.User, error)
 }
 
-// ----------------------------------------------------------
-// Usecase 本体
-// ----------------------------------------------------------
 type RegisterUserUsecase struct {
 	Repo RegisterUserRepository
 }
@@ -28,9 +23,6 @@ func NewRegisterUserUsecase(repo RegisterUserRepository) *RegisterUserUsecase {
 	return &RegisterUserUsecase{Repo: repo}
 }
 
-// ----------------------------------------------------------
-// 実行処理（ユーザー登録）
-// ----------------------------------------------------------
 func (uc *RegisterUserUsecase) Execute(name, email, password string) (string, error) {
 
 	// email 重複チェック
@@ -48,11 +40,11 @@ func (uc *RegisterUserUsecase) Execute(name, email, password string) (string, er
 		return "", err
 	}
 
-	// ID 生成
+	// ID 生成（ULID）
 	entropy := ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
 	id := ulid.MustNew(ulid.Timestamp(time.Now()), entropy).String()
 
-	// モデル生成
+	// モデル作成
 	user := &model.User{
 		ID:           id,
 		Name:         name,
@@ -60,8 +52,8 @@ func (uc *RegisterUserUsecase) Execute(name, email, password string) (string, er
 		PasswordHash: string(hashed),
 	}
 
-	// バリデーション
-	if !user.Validate() {
+	// 簡単なバリデーション
+	if user.Name == "" || user.Email == "" || password == "" {
 		return "", ErrInvalidUser
 	}
 

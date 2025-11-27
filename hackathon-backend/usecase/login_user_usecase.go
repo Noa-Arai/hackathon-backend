@@ -1,16 +1,11 @@
 package usecase
 
 import (
-	"errors"
 	"hackathon-backend/model"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
-)
-
-var (
-	ErrInvalidLogin = errors.New("invalid email or password")
 )
 
 type LoginUserRepository interface {
@@ -23,19 +18,13 @@ type LoginUserUsecase struct {
 }
 
 func NewLoginUserUsecase(repo LoginUserRepository, secret string) *LoginUserUsecase {
-	return &LoginUserUsecase{
-		Repo:      repo,
-		JWTSecret: secret,
-	}
+	return &LoginUserUsecase{Repo: repo, JWTSecret: secret}
 }
 
 func (uc *LoginUserUsecase) Execute(email, password string) (string, error) {
 
 	user, err := uc.Repo.FindByEmail(email)
-	if err != nil {
-		return "", err
-	}
-	if user == nil {
+	if err != nil || user == nil {
 		return "", ErrInvalidLogin
 	}
 
@@ -43,15 +32,11 @@ func (uc *LoginUserUsecase) Execute(email, password string) (string, error) {
 		return "", ErrInvalidLogin
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-	})
-
-	tokenString, err := token.SignedString([]byte(uc.JWTSecret))
-	if err != nil {
-		return "", err
 	}
 
-	return tokenString, nil
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(uc.JWTSecret))
 }
