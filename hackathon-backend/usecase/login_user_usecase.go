@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"errors"
+	"fmt"
 	"hackathon-backend/model"
 	"time"
 
@@ -26,6 +27,10 @@ func NewLoginUserUsecase(repo LoginUserRepository, secret string) *LoginUserUsec
 }
 
 func (uc *LoginUserUsecase) Execute(email, password string) (string, error) {
+
+	fmt.Println("=== LOGIN START ===")
+	fmt.Println("email =", email)
+	fmt.Println("password =", password)
 
 	user, err := uc.Repo.FindByEmail(email)
 	if err != nil || user == nil {
