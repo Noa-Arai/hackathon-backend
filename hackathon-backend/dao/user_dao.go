@@ -18,17 +18,16 @@ func NewUserDAO(db *sql.DB) *UserDAO {
 // -----------------------
 func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
 
-	// ★ カラム順ではなく「カラム名」を厳密に指定
 	query := `
         SELECT
             id,
             name,
             email,
             password_hash,
-            IFNULL(bio, ''),
-            IFNULL(birthday, ''),
             avatar_data,
-            avatar_type
+            avatar_type,
+            bio,
+            birthday
         FROM users
         WHERE email = ?
         LIMIT 1
@@ -42,10 +41,10 @@ func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
 		&u.Name,
 		&u.Email,
 		&u.PasswordHash,
-		&u.Bio,
-		&u.Birthday,
 		&u.AvatarData,
 		&u.AvatarType,
+		&u.Bio,
+		&u.Birthday,
 	)
 
 	if err == sql.ErrNoRows {
