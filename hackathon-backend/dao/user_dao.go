@@ -19,21 +19,18 @@ func NewUserDAO(db *sql.DB) *UserDAO {
 func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
 	row := d.DB.QueryRow(`
 		SELECT id, name, email, password_hash, bio, birthday, avatar_data, avatar_type
-		FROM users
-		WHERE email = ?
-	`, email)
+		FROM users WHERE email = ?`, email)
 
 	var u model.User
 	err := row.Scan(
-		&u.ID,
-		&u.Name,
-		&u.Email,
-		&u.PasswordHash, // ←これ必須！！
-		&u.Bio,
-		&u.Birthday,
-		&u.AvatarData,
-		&u.AvatarType,
+		&u.ID, &u.Name, &u.Email, &u.PasswordHash,
+		&u.Bio, &u.Birthday,
+		&u.AvatarData, &u.AvatarType,
 	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // ← 見つからない=正常。新規登録できる！
+	}
 	if err != nil {
 		return nil, err
 	}
