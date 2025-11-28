@@ -76,27 +76,41 @@ func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
 // -----------------------
 func (d *UserDAO) FindByID(id string) (*model.User, error) {
 	row := d.DB.QueryRow(`
-		SELECT id, name, email, password_hash, bio, birthday, avatar_data, avatar_type
-		FROM users
-		WHERE id = ?
-	`, id)
+        SELECT id, name, email, password_hash, bio, birthday, avatar_data, avatar_type
+        FROM users
+        WHERE id = ?
+    `, id)
+
+	var (
+		bio        sql.NullString
+		birthday   sql.NullString
+		avatarType sql.NullString
+		avatarData []byte
+	)
 
 	var u model.User
+
 	err := row.Scan(
 		&u.ID,
 		&u.Name,
 		&u.Email,
 		&u.PasswordHash,
-		&u.Bio,
-		&u.Birthday,
-		&u.AvatarData,
-		&u.AvatarType,
+		&bio,
+		&birthday,
+		&avatarData,
+		&avatarType,
 	)
+
 	if err != nil {
 		return nil, err
 	}
 
+	u.Bio = bio.String
+	u.Birthday = birthday.String
+	u.AvatarType = avatarType.String
+	u.AvatarData = avatarData
 	u.AvatarURL = "/users/avatar?id=" + u.ID
+
 	return &u, nil
 }
 
