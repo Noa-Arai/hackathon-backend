@@ -1,12 +1,16 @@
 package usecase
 
 import (
+	"errors"
 	"hackathon-backend/model"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// ★ ここに定義するのが正解！
+var ErrInvalidLogin = errors.New("invalid email or password")
 
 type LoginUserRepository interface {
 	FindByEmail(email string) (*model.User, error)
