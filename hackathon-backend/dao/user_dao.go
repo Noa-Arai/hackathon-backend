@@ -24,6 +24,7 @@ func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
             name,
             email,
             password_hash,
+            created_at,     -- ★追加
             avatar_data,
             avatar_type,
             bio,
@@ -35,12 +36,15 @@ func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
 
 	row := d.DB.QueryRow(query, email)
 
+	var createdAt string // ★ 受け取り専用の捨て変数
+
 	var u model.User
 	err := row.Scan(
 		&u.ID,
 		&u.Name,
 		&u.Email,
 		&u.PasswordHash,
+		&createdAt, // ★ created_at をここで捨てる
 		&u.AvatarData,
 		&u.AvatarType,
 		&u.Bio,
