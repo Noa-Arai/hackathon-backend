@@ -53,10 +53,5 @@ func (uc *RegisterUserUsecase) Execute(name, email, password string) (string, er
 		PasswordHash: string(hashed),
 	}
 
-	// ★ Validate 呼び出し
-	if err := user.Validate(); err != nil {
-		return "", ErrInvalidUser
-	}
-
 	return id, uc.Repo.Insert(user)
 }
