@@ -24,7 +24,6 @@ func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
             name,
             email,
             password_hash,
-            created_at,     -- ★追加
             avatar_data,
             avatar_type,
             bio,
@@ -36,7 +35,12 @@ func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
 
 	row := d.DB.QueryRow(query, email)
 
-	var createdAt string // ★ 受け取り専用の捨て変数
+	var (
+		avatarData []byte
+		avatarType sql.NullString
+		bio        sql.NullString
+		birthday   sql.NullString
+	)
 
 	var u model.User
 	err := row.Scan(
@@ -44,11 +48,10 @@ func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
 		&u.Name,
 		&u.Email,
 		&u.PasswordHash,
-		&createdAt, // ★ created_at をここで捨てる
-		&u.AvatarData,
-		&u.AvatarType,
-		&u.Bio,
-		&u.Birthday,
+		&avatarData,
+		&avatarType,
+		&bio,
+		&birthday,
 	)
 
 	if err == sql.ErrNoRows {
@@ -57,6 +60,12 @@ func (d *UserDAO) FindByEmail(email string) (*model.User, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// NULL を Go の型に変換
+	u.AvatarData = avatarData
+	u.AvatarType = avatarType.String
+	u.Bio = bio.String
+	u.Birthday = birthday.String
 
 	u.AvatarURL = "/users/avatar?id=" + u.ID
 	return &u, nil
