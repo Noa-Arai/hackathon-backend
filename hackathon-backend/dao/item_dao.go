@@ -97,3 +97,27 @@ func (d *ItemDAO) FindImage(id string, index int) ([]byte, string, error) {
 
 	return data, mime, err
 }
+
+func (d *ItemDAO) Update(item *model.Item) error {
+	_, err := d.DB.Exec(`
+UPDATE items
+SET 
+  title = ?,
+  description = ?,
+  price = ?,
+  image1_data = ?, image1_type = ?,
+  image2_data = ?, image2_type = ?,
+  image3_data = ?, image3_type = ?
+WHERE id = ? AND user_id = ?
+`,
+		item.Title,
+		item.Description,
+		item.Price,
+		item.Image1Data, item.Image1Type,
+		item.Image2Data, item.Image2Type,
+		item.Image3Data, item.Image3Type,
+		item.ID, item.UserID,
+	)
+
+	return err
+}
