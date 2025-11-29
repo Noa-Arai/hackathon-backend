@@ -74,8 +74,6 @@ func main() {
 	registerItemUsecase := usecase.NewRegisterItemUsecase(itemDAO)
 	getItemsUsecase := usecase.NewGetItemsUsecase(itemDAO)
 	getItemImageUsecase := usecase.NewGetItemImageUsecase(itemDAO)
-
-	// ⭐ 追加：Update Item Usecase
 	updateItemUsecase := usecase.NewUpdateItemUsecase(itemDAO)
 
 	// Messages
@@ -102,8 +100,6 @@ func main() {
 	// Items
 	registerItemController := controller.NewRegisterItemController(registerItemUsecase)
 	getItemsController := controller.NewGetItemsController(getItemsUsecase, getItemImageUsecase)
-
-	// ⭐ 追加：Update Item Controller
 	updateItemController := controller.NewUpdateItemController(updateItemUsecase)
 
 	// Messages
@@ -117,11 +113,11 @@ func main() {
 
 	// ======== ROUTING ========
 
-	// USER
+	// ---------------- USER ----------------
 	mux.HandleFunc("/user", registerUserController.Handle)
 	mux.HandleFunc("/login", loginController.Handle)
 
-	// PROFILE (JWT)
+	// ---------------- PROFILE (JWT) ----------------
 	mux.Handle("/users/me", middleware.AuthMiddleware(
 		http.HandlerFunc(getMyProfileController.Handle),
 	))
@@ -135,7 +131,7 @@ func main() {
 	// public avatar fetch
 	mux.HandleFunc("/users/avatar", getAvatarController.Handle)
 
-	// ITEMS
+	// ---------------- ITEMS ----------------
 	mux.Handle("/items", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
@@ -146,17 +142,18 @@ func main() {
 		}),
 	))
 
+	// 商品一覧 / 画像
 	mux.HandleFunc("/items/list", getItemsController.Handle)
 	mux.HandleFunc("/items/image1", getItemsController.HandleImage(1))
 	mux.HandleFunc("/items/image2", getItemsController.HandleImage(2))
 	mux.HandleFunc("/items/image3", getItemsController.HandleImage(3))
 
-	// ⭐ UPDATE ITEM（追加）
+	// ⭐ 商品編集（JWT必要）
 	mux.Handle("/items/update", middleware.AuthMiddleware(
 		http.HandlerFunc(updateItemController.Handle),
 	))
 
-	// MESSAGES
+	// ---------------- MESSAGES ----------------
 	mux.Handle("/messages", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
@@ -171,7 +168,7 @@ func main() {
 		http.HandlerFunc(messageController.List),
 	))
 
-	// PURCHASE
+	// ---------------- PURCHASE ----------------
 	mux.Handle("/purchase", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
@@ -182,7 +179,7 @@ func main() {
 		}),
 	))
 
-	// AI
+	// ---------------- AI ----------------
 	mux.HandleFunc("/ai/describe", aiController.Describe)
 	mux.HandleFunc("/ai/ask", aiController.Ask)
 
