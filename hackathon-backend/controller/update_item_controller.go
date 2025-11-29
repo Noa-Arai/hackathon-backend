@@ -1,10 +1,13 @@
 package controller
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
+	"hackathon-backend/middleware"
+	"hackathon-backend/model"
 	"hackathon-backend/usecase"
 )
 
@@ -12,50 +15,99 @@ type UpdateItemController struct {
 	Usecase *usecase.UpdateItemUsecase
 }
 
-func NewUpdateItemController(u *usecase.UpdateItemUsecase) *UpdateItemController {
-	return &UpdateItemController{Usecase: u}
+func NewUpdateItemController(uc *usecase.UpdateItemUsecase) *UpdateItemController {
+	return &UpdateItemController{Usecase: uc}
 }
 
 func (c *UpdateItemController) Handle(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", 405)
+	// =======================
+	// JWT ユーザー取得
+	// =======================
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	userID := r.Context().Value("user_id").(string)
+	// =======================
+	// POST 以外拒否
+	// =======================
+	if r.Method != "POST" {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-	itemID := r.FormValue("item_id")
+	// =======================
+	// multipart パース
+	// =======================
+	if err := r.ParseMultipartForm(20 << 20); err != nil {
+		http.Error(w, "Invalid multipart form", http.StatusBadRequest)
+		return
+	}
+
+	// =======================
+	// フォーム値
+	// =======================
+	itemID := r.FormValue("id")
 	title := r.FormValue("title")
-	desc := r.FormValue("description")
-	price, _ := strconv.Atoi(r.FormValue("price"))
+	description := r.FormValue("description")
+	priceStr := r.FormValue("price")
 
-	var imgData [3][]byte
-	var imgType [3]string
+	price, _ := strconv.Atoi(priceStr)
 
-	files := r.MultipartForm.File["images"]
-
-	for i := 0; i < 3; i++ {
-		if i < len(files) {
-			f, _ := files[i].Open()
-			bin, _ := io.ReadAll(f)
-			f.Close()
-
-			imgData[i] = bin
-			imgType[i] = files[i].Header.Get("Content-Type")
-		}
+	// =======================
+	// Model を作成
+	// =======================
+	item := &model.Item{
+		ID:          itemID, // ID は string のままで OK
+		UserID:      userID,
+		Title:       title,
+		Description: description,
+		Price:       price,
 	}
 
-	err := c.Usecase.Execute(
-		itemID, userID, title, desc, price,
-		imgData[0], imgType[0],
-		imgData[1], imgType[1],
-		imgData[2], imgType[2],
-	)
-	if err != nil {
-		http.Error(w, "update failed", 500)
+	// =======================
+	// image1
+	// =======================
+	file1, header1, _ := r.FormFile("image1")
+	if file1 != nil {
+		defer file1.Close()
+		data, _ := io.ReadAll(file1)
+		item.Image1Data = data
+		item.Image1Type = header1.Header.Get("Content-Type")
+	}
+
+	// =======================
+	// image2
+	// =======================
+	file2, header2, _ := r.FormFile("image2")
+	if file2 != nil {
+		defer file2.Close()
+		data, _ := io.ReadAll(file2)
+		item.Image2Data = data
+		item.Image2Type = header2.Header.Get("Content-Type")
+	}
+
+	// =======================
+	// image3
+	// =======================
+	file3, header3, _ := r.FormFile("image3")
+	if file3 != nil {
+		defer file3.Close()
+		data, _ := io.ReadAll(file3)
+		item.Image3Data = data
+		item.Image3Type = header3.Header.Get("Content-Type")
+	}
+
+	// =======================
+	// 更新実行
+	// =======================
+	if err := c.Usecase.Execute(item); err != nil {
+		fmt.Println("UPDATE ERROR:", err)
+		http.Error(w, "Failed to update item", http.StatusInternalServerError)
 		return
 	}
 
-	w.Write([]byte(`{"ok":true}`))
+	w.Write([]byte(`{"status":"ok"}`))
 }
