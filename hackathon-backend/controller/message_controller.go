@@ -24,16 +24,11 @@ func NewMessageController(uc *usecase.MessageUsecase) *MessageController {
 
 // POST /messages
 func (c *MessageController) Send(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	fromUserID, _ := r.Context().Value(middleware.UserIDKey).(string)
 
 	var req SendMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -42,83 +37,69 @@ func (c *MessageController) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.Usecase.SendMessage(fromUserID, req.ToUserID, req.ItemID, req.Text); err != nil {
-		http.Error(w, "Failed to send message", http.StatusInternalServerError)
+	err := c.Usecase.SendMessage(fromUserID, req.ToUserID, req.ItemID, req.Text)
+	if err != nil {
+		http.Error(w, "send failed", 500)
 		return
 	}
 
 	w.Write([]byte(`{"status":"sent"}`))
 }
 
-// GET /messages?item_id=1
+// GET /messages?item_id=xxx
 func (c *MessageController) List(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	itemIDStr := r.URL.Query().Get("item_id")
-	if itemIDStr == "" {
-		http.Error(w, "item_id required", http.StatusBadRequest)
-		return
-	}
 
-	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
+	itemID, _ := strconv.ParseInt(itemIDStr, 10, 64)
+	msgs, err := c.Usecase.GetMessages(itemID)
 	if err != nil {
-		http.Error(w, "invalid item_id", http.StatusBadRequest)
+		http.Error(w, "load failed", 500)
 		return
 	}
 
-	messages, err := c.Usecase.GetMessages(itemID)
-	if err != nil {
-		http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(messages)
+	json.NewEncoder(w).Encode(msgs)
 }
 
-// GET /messages/list  ← DMルーム一覧
+// GET /messages/rooms
 func (c *MessageController) ListRooms(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
-
 	rooms, err := c.Usecase.ListUserRooms(userID)
 	if err != nil {
-		http.Error(w, "failed to load message rooms", 500)
+		http.Error(w, "list failed", 500)
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(rooms)
 }
 
-// POST /messages/read
-func (c *MessageController) MarkAsRead(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+// GET /messages/list?item_id=xxx&partner_id=xxx
+func (c *MessageController) ListChat(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
 
 	itemIDStr := r.URL.Query().Get("item_id")
-	if itemIDStr == "" {
-		http.Error(w, "item_id required", http.StatusBadRequest)
-		return
-	}
+	partnerID := r.URL.Query().Get("partner_id")
 
-	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
+	itemID, _ := strconv.ParseInt(itemIDStr, 10, 64)
+
+	msgs, err := c.Usecase.ListChat(userID, partnerID, itemID)
 	if err != nil {
-		http.Error(w, "invalid item_id", http.StatusBadRequest)
+		http.Error(w, "chat load failed", 500)
 		return
 	}
 
-	if err := c.Usecase.MarkAsRead(itemID, userID); err != nil {
-		http.Error(w, "failed to update read status", 500)
+	json.NewEncoder(w).Encode(msgs)
+}
+
+// POST /messages/read?item_id=xxx
+func (c *MessageController) MarkAsRead(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	itemIDStr := r.URL.Query().Get("item_id")
+	itemID, _ := strconv.ParseInt(itemIDStr, 10, 64)
+
+	err := c.Usecase.MarkAsRead(itemID, userID)
+	if err != nil {
+		http.Error(w, "mark failed", 500)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status":"ok"}`))
 }

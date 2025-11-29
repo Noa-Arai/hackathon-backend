@@ -31,6 +31,10 @@ func (uc *MessageUsecase) ListUserRooms(userID string) ([]model.MessageRoom, err
 	return uc.Repo.ListUserRooms(userID)
 }
 
+func (uc *MessageUsecase) ListChat(userID string, partnerID string, itemID int64) ([]model.Message, error) {
+	return uc.Repo.ListChat(userID, partnerID, itemID)
+}
+
 func (uc *MessageUsecase) MarkAsRead(itemID int64, userID string) error {
 	return uc.Repo.MarkAsRead(itemID, userID)
 }
