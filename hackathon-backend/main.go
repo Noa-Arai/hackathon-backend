@@ -154,30 +154,20 @@ func main() {
 	))
 
 	// ---------------- MESSAGES ----------------
+
+	// POST /messages
 	mux.Handle("/messages", middleware.AuthMiddleware(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost {
-				messageController.Send(w, r)
-				return
-			}
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}),
+		http.HandlerFunc(messageController.Send),
 	))
 
-	mux.Handle("/messages/list", middleware.AuthMiddleware(
+	// GET /messages/room?item_id=xx&partner_id=yy
+	mux.Handle("/messages/room", middleware.AuthMiddleware(
 		http.HandlerFunc(messageController.List),
 	))
 
-	mux.Handle("/messages/list", middleware.AuthMiddleware(
+	// GET /messages/rooms
+	mux.Handle("/messages/rooms", middleware.AuthMiddleware(
 		http.HandlerFunc(messageController.ListRooms),
-	))
-
-	mux.Handle("/messages/list", middleware.AuthMiddleware(
-		http.HandlerFunc(messageController.ListRooms),
-	))
-
-	mux.Handle("/messages/read", middleware.AuthMiddleware(
-		http.HandlerFunc(messageController.MarkAsRead),
 	))
 
 	// ---------------- PURCHASE ----------------
