@@ -168,6 +168,18 @@ func main() {
 		http.HandlerFunc(messageController.List),
 	))
 
+	mux.Handle("/messages/list", middleware.AuthMiddleware(
+		http.HandlerFunc(messageController.ListRooms),
+	))
+
+	mux.Handle("/messages/list", middleware.AuthMiddleware(
+		http.HandlerFunc(messageController.ListRooms),
+	))
+
+	mux.Handle("/messages/read", middleware.AuthMiddleware(
+		http.HandlerFunc(messageController.MarkAsRead),
+	))
+
 	// ---------------- PURCHASE ----------------
 	mux.Handle("/purchase", middleware.AuthMiddleware(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

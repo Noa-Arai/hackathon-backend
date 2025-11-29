@@ -78,3 +78,47 @@ func (c *MessageController) List(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
+
+// GET /messages/list  ← DMルーム一覧
+func (c *MessageController) ListRooms(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
+
+	rooms, err := c.Usecase.ListUserRooms(userID)
+	if err != nil {
+		http.Error(w, "failed to load message rooms", 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(rooms)
+}
+
+// POST /messages/read
+func (c *MessageController) MarkAsRead(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
+
+	itemIDStr := r.URL.Query().Get("item_id")
+	if itemIDStr == "" {
+		http.Error(w, "item_id required", http.StatusBadRequest)
+		return
+	}
+
+	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid item_id", http.StatusBadRequest)
+		return
+	}
+
+	if err := c.Usecase.MarkAsRead(itemID, userID); err != nil {
+		http.Error(w, "failed to update read status", 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"status":"ok"}`))
+}
