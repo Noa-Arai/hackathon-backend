@@ -49,9 +49,8 @@ func init() {
 
 func main() {
 
-	// ======== mux + CORS ========
+	// ======== mux ========
 	mux := http.NewServeMux()
-	handler := middleware.CORS(mux)
 
 	// ======== DAO ========
 	userDAO := dao.NewUserDAO(db)
@@ -187,6 +186,11 @@ func main() {
 
 	// graceful shutdown
 	closeDBWithSysCall()
+
+	// ======== ⭐ CORS を mux.ServeHTTP に適用（決定的な修正） ========
+	handler := middleware.CORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, r)
+	}))
 
 	// Start server
 	port := os.Getenv("PORT")
