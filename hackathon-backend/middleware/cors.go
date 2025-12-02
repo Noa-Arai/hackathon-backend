@@ -13,8 +13,10 @@ func CORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Methods",
 			"GET, POST, PATCH, PUT, DELETE, OPTIONS")
 
+		// ⭐ Cloud Run で OPTIONS を安定させるための最小追加
 		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Length", "0")
+			w.WriteHeader(http.StatusNoContent) // ← 204 の方が Cloud Run が安定
 			return
 		}
 
