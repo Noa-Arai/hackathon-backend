@@ -154,17 +154,17 @@ func main() {
 
 	// ---------------- MESSAGES ----------------
 
-	// POST /messages
+	// ⭐ DM（メッセージ送信）
 	mux.Handle("/messages", middleware.AuthMiddleware(
 		http.HandlerFunc(messageController.Send),
 	))
 
-	// GET /messages/room?item_id=xx&partner_id=yy
+	// ⭐ DM（メッセージ一覧 /rooms?item_id=...&partner_id=...）
 	mux.Handle("/messages/room", middleware.AuthMiddleware(
 		http.HandlerFunc(messageController.List),
 	))
 
-	// GET /messages/rooms
+	// ⭐ DMルームリスト
 	mux.Handle("/messages/rooms", middleware.AuthMiddleware(
 		http.HandlerFunc(messageController.ListRooms),
 	))
