@@ -22,7 +22,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// "Bearer xxxxx.yyyyy.zzzzz"
+		// "Bearer xxx"
 		var tokenString string
 		_, err := fmt.Sscanf(authHeader, "Bearer %s", &tokenString)
 		if err != nil {
@@ -30,7 +30,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// JWT secret
 		secret := []byte(os.Getenv("JWT_SECRET"))
 
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
@@ -41,11 +40,18 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		claims := token.Claims.(jwt.MapClaims)
-		userID := claims["user_id"].(string)
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			http.Error(w, "Invalid claims format", http.StatusUnauthorized)
+			return
+		}
 
-		// Context に userID を入れる
-		ctx := context.WithValue(r.Context(), UserIDKey, userID)
+		// 🔥 user_id を安全に文字列化（panic防止）
+		uidAny := claims["user_id"]
+		uidStr := fmt.Sprintf("%v", uidAny)
+
+		// Context に安全にセット
+		ctx := context.WithValue(r.Context(), UserIDKey, uidStr)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
