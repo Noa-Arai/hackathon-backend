@@ -1,26 +1,26 @@
 package middleware
 
-import (
-	"net/http"
-)
+import "net/http"
+
+var allowedOrigins = map[string]bool{
+	"http://localhost:3000": true,
+	// "https://あなたの本番ドメイン" も必要なら追加
+}
 
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		if allowedOrigins[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Methods",
-			"GET, POST, PATCH, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 
-		// ⭐ Cloud Run / Chrome が確実に通す OPTIONS の返し方
 		if r.Method == http.MethodOptions {
-			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{}`))
 			return
 		}
-
 		next.ServeHTTP(w, r)
 	})
 }
