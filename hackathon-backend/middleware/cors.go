@@ -3,8 +3,8 @@ package middleware
 import "net/http"
 
 var allowedOrigins = map[string]bool{
-	"http://localhost:3000": true,
-	// "https://あなたの本番ドメイン" も必要なら追加
+	"http://localhost:3000":                        true,
+	"https://hackathon-frontend-virid.vercel.app/": true,
 }
 
 func CORS(next http.Handler) http.Handler {
