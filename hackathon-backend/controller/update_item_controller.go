@@ -52,6 +52,7 @@ func (c *UpdateItemController) Handle(w http.ResponseWriter, r *http.Request) {
 	itemID := r.FormValue("id")
 	title := r.FormValue("title")
 	description := r.FormValue("description")
+	category := r.FormValue("category")
 	priceStr := r.FormValue("price")
 
 	price, _ := strconv.Atoi(priceStr)
@@ -64,6 +65,7 @@ func (c *UpdateItemController) Handle(w http.ResponseWriter, r *http.Request) {
 		UserID:      userID,
 		Title:       title,
 		Description: description,
+		Category:    category,
 		Price:       price,
 	}
 
