@@ -8,6 +8,7 @@ type Item struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Price       int    `json:"price"`
+	Category    string `json:"category"`
 
 	// --- 保存用（BLOB） ---
 	Image1Data []byte `json:"-"`

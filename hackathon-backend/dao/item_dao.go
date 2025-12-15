@@ -17,14 +17,14 @@ func NewItemDAO(db *sql.DB) *ItemDAO {
 func (d *ItemDAO) Insert(item *model.Item) error {
 	_, err := d.DB.Exec(`
 		INSERT INTO items 
-		(user_id, title, description, price,
+		(user_id, title, description, price, category
 		 image1_data, image1_type,
 		 image2_data, image2_type,
 		 image3_data, image3_type)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		item.UserID,
-		item.Title, item.Description, item.Price,
+		item.Title, item.Description, item.Price, item.Category,
 		item.Image1Data, item.Image1Type,
 		item.Image2Data, item.Image2Type,
 		item.Image3Data, item.Image3Type,
@@ -40,7 +40,7 @@ func (d *ItemDAO) Insert(item *model.Item) error {
 func (d *ItemDAO) FindAll() ([]model.Item, error) {
 
 	rows, err := d.DB.Query(`
-		SELECT id, user_id, title, description, price, created_at
+		SELECT id, user_id, title, description, price, category, created_at
 		FROM items
 		ORDER BY created_at DESC
 	`)
@@ -60,6 +60,7 @@ func (d *ItemDAO) FindAll() ([]model.Item, error) {
 			&i.Title,
 			&i.Description,
 			&i.Price,
+			&i.Category,
 			&i.CreatedAt,
 		)
 		if err != nil {
@@ -105,6 +106,7 @@ SET
   title = ?,
   description = ?,
   price = ?,
+  category = ?,
   image1_data = ?, image1_type = ?,
   image2_data = ?, image2_type = ?,
   image3_data = ?, image3_type = ?
@@ -113,6 +115,7 @@ WHERE id = ? AND user_id = ?
 		item.Title,
 		item.Description,
 		item.Price,
+		item.Category,
 		item.Image1Data, item.Image1Type,
 		item.Image2Data, item.Image2Type,
 		item.Image3Data, item.Image3Type,
