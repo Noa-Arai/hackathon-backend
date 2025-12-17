@@ -54,6 +54,7 @@ func (c *UpdateItemController) Handle(w http.ResponseWriter, r *http.Request) {
 	description := r.FormValue("description")
 	category := r.FormValue("category")
 	priceStr := r.FormValue("price")
+	isLuckyBag := r.FormValue("is_lucky_bag") == "true"
 
 	price, _ := strconv.Atoi(priceStr)
 
@@ -67,6 +68,7 @@ func (c *UpdateItemController) Handle(w http.ResponseWriter, r *http.Request) {
 		Description: description,
 		Category:    category,
 		Price:       price,
+		IsLuckyBag:  isLuckyBag,
 	}
 
 	// =======================

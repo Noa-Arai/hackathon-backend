@@ -16,8 +16,10 @@ func NewRegisterItemUsecase(r RegisterItemRepository) *RegisterItemUsecase {
 	return &RegisterItemUsecase{Repo: r}
 }
 
+// 🔥 Execute の引数を変更しました（category と isLuckyBag を追加）
 func (uc *RegisterItemUsecase) Execute(
 	userID, title, desc string, price int,
+	category string, isLuckyBag bool, // 👈 ここを追加！
 	img1 []byte, img1Type string,
 	img2 []byte, img2Type string,
 	img3 []byte, img3Type string,
@@ -28,6 +30,10 @@ func (uc *RegisterItemUsecase) Execute(
 		Title:       title,
 		Description: desc,
 		Price:       price,
+
+		// 🔥 構造体へのセットを追加
+		Category:   category,
+		IsLuckyBag: isLuckyBag,
 
 		Image1Data: img1,
 		Image1Type: img1Type,

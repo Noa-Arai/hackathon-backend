@@ -9,6 +9,7 @@ type Item struct {
 	Description string `json:"description"`
 	Price       int    `json:"price"`
 	Category    string `json:"category"`
+	IsLuckyBag  bool   `json:"is_lucky_bag"`
 
 	// --- 保存用（BLOB） ---
 	Image1Data []byte `json:"-"`

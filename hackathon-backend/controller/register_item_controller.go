@@ -38,6 +38,9 @@ func (c *RegisterItemController) Handle(w http.ResponseWriter, r *http.Request) 
 	description := r.FormValue("description")
 	price, _ := strconv.Atoi(r.FormValue("price"))
 
+	category := r.FormValue("category")
+	isLuckyBag := r.FormValue("is_lucky_bag") == "true"
+
 	// --- 画像3つ取得 ---
 	file1, header1, _ := r.FormFile("file1")
 	file2, header2, _ := r.FormFile("file2")
@@ -66,6 +69,8 @@ func (c *RegisterItemController) Handle(w http.ResponseWriter, r *http.Request) 
 		title,
 		description,
 		price,
+		category,
+		isLuckyBag,
 		img1, t1,
 		img2, t2,
 		img3, t3,
