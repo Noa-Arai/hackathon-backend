@@ -42,9 +42,9 @@ func (c *RegisterItemController) Handle(w http.ResponseWriter, r *http.Request) 
 	isLuckyBag := r.FormValue("is_lucky_bag") == "true"
 
 	// --- 画像3つ取得 ---
-	file1, header1, _ := r.FormFile("file1")
-	file2, header2, _ := r.FormFile("file2")
-	file3, header3, _ := r.FormFile("file3")
+	file1, header1, _ := r.FormFile("image1")
+	file2, header2, _ := r.FormFile("image2")
+	file3, header3, _ := r.FormFile("image3")
 
 	img1 := readFile(file1)
 	img2 := readFile(file2)
