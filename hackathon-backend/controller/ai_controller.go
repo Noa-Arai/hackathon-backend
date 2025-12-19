@@ -83,3 +83,27 @@ func (c *AIController) Ask(w http.ResponseWriter, r *http.Request) {
 		"answer": answer,
 	}, http.StatusOK)
 }
+
+// 感情検索のエンドポイント
+func (c *AIController) HandleEmotionSearch(w http.ResponseWriter, r *http.Request) {
+	// クエリパラメータから感情を取得 (?emotion=イライラ)
+	emotion := r.URL.Query().Get("emotion")
+	if emotion == "" {
+		http.Error(w, "Emotion is required", http.StatusBadRequest)
+		return
+	}
+
+	// UseCaseを呼ぶ
+	keywords, err := c.Usecase.SuggestKeywords(emotion)
+	if err != nil {
+		http.Error(w, "AI Error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// JSONで返す
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"emotion":  emotion,
+		"keywords": keywords,
+	})
+}

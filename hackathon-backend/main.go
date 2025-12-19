@@ -152,6 +152,7 @@ func main() {
 		http.HandlerFunc(updateItemController.Handle),
 	))
 
+	http.HandleFunc("/items/search/emotion", aiController.HandleEmotionSearch)
 	// ---------------- MESSAGES ----------------
 
 	// ⭐ DM（メッセージ送信）
